@@ -128,3 +128,40 @@ jobs:
       - name: test
         run: DYLD_BIND_AT_LAUNCH=1 LD_BIND_NOW=1 ${{ matrix.os.exe_file }} --version
         shell: bash
+
+  package-npm:
+    name: npm package
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v2
+      - name: checkout
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: quick-lint-js-linux-${{ github.sha }}
+          path: dist/npm/linux/
+      - uses: actions/download-artifact@v2
+        with:
+          name: quick-lint-js-macos-${{ github.sha }}
+          path: dist/npm/macos/
+      - uses: actions/download-artifact@v2
+        with:
+          name: quick-lint-js-windows-${{ github.sha }}
+          path: dist/npm/windows/
+
+      - name: package
+        run: npm pack ./dist/npm
+
+      - name: upload package
+        uses: actions/upload-artifact@v2
+        with:
+          if-no-files-found: error
+          name: quick-lint-js-npm-${{ github.sha }}
+          path: quick-lint-js-*.tgz
